@@ -40,12 +40,13 @@ search-assignment/
 ## Requirements
 
 - Python 3.8+
-- No external libraries required for Part A
+- To check how the graph is generate, type pip install matloblib in the terminal of the generate_graph.py
 
 ---
 
 ## How to Run
-
+To run the tests in this project, execute the following command in a terminal from the project root directory (the file path)
+Example: C:\Users\User\Documents\GitHub\COS30019_ASSIGNMENT_2A
 ```
 python search.py <filename> <method>
 ```
@@ -108,8 +109,27 @@ Per spec: when evaluation scores are equal, nodes are expanded in **ascending no
 
 ### DFS (Depth-First Search)
 
+Type: Uniformed
+Strategy: Explores as deep as possible along a branch before backtracking
+Data Structure: Stack (LIFO)
+Evaluation: No cost or heuristic — purely structural traversal
+Complete: Yes — if graph is finite and uses explored set
+Optimal: No — may return a longer path than necessary
+Space: O(b × m) — stores only current path and siblings (memory efficient)
+Behavior: Can quickly find a solution in deep graphs but may get stuck exploring long incorrect paths first
 
+### BFS (BReadth-First Search)
+Type: Uninformed
+Strategy: Explores all nodes at the current depth before moving deeper
+Data Structure: Queue (FIFO)
+Evaluation: No cost or heuristic — level-order traversal
+Complete: Yes — will find a solution if one exists
+Optimal: Yes — guarantees shortest path in terms of number of edges (unit cost)
+Space: O(b^d) — stores all nodes at the current level (memory intensive)
+Behavior: Always finds the shallowest goal first but can consume large memory for wide graphs
 ---
+
+
 
 ## GitHub Workflow
 
