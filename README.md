@@ -3,7 +3,7 @@
 ## Team Members
 | Name | Student ID | Algorithms |
 |------|------------|------------|
-| [Member A] | [ID] | DFS, BFS, Parser |
+| [Shania Serani] | [102770855] | DFS, BFS, Parser |
 | [Member B] | [ID] | GBFS, A* (AS) |
 | [Member C] | [ID] | CUS1 (IDDFS), CUS2 |
 | [Member D] | [ID] | Tests, Report, Integration |
