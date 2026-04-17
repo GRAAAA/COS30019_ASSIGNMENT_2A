@@ -106,6 +106,9 @@ python tests/run_tests.py
 ### Tiebreaking (all algorithms)
 Per spec: when evaluation scores are equal, nodes are expanded in **ascending node ID order**, and among nodes added at the same time, in **chronological (insertion) order**. This is implemented via a `(f_value, node_id, insertion_counter)` heap key.
 
+### DFS (Depth-First Search)
+
+
 ---
 
 ## GitHub Workflow
