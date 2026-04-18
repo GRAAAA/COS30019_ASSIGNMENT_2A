@@ -129,7 +129,7 @@ Space: O(b^d) — stores all nodes at the current level (memory intensive)
 Behavior: Always finds the shallowest goal first but can consume large memory for wide graphs
 ---
 
-
+----
 
 ## GitHub Workflow
 
