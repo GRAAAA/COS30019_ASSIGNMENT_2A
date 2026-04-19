@@ -3,9 +3,9 @@
 ## Team Members
 | Name | Student ID | Algorithms |
 |------|------------|------------|
-| [Shania Serani] | [102770855] | DFS, BFS, Parser |
+| Shania Serani | 102770855 | DFS, BFS, |
 | Changhyeon AN | 102783073 | GBFS, A* CUS1, Testing|
-| [Member C] | [ID] |, CUS2 |
+| Kai Shuen | 104400549  |, CUS2 , Parser|
 
 
 ---
