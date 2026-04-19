@@ -116,7 +116,7 @@ Optimal: No — may return a longer path than necessary
 Space: O(b × m) — stores only current path and siblings (memory efficient)
 Behavior: Can quickly find a solution in deep graphs but may get stuck exploring long incorrect paths first
 
-### BFS (BReadth-First Search)
+### BFS (Breadth-First Search)
 Type: Uninformed
 Strategy: Explores all nodes at the current depth before moving deeper
 Data Structure: Queue (FIFO)
@@ -124,8 +124,8 @@ Evaluation: No cost or heuristic — level-order traversal
 Complete: Yes — will find a solution if one exists
 Optimal: Yes — guarantees shortest path in terms of number of edges (unit cost)
 Space: O(b^d) — stores all nodes at the current level (memory intensive)
-Behavior: Always finds the shallowest goal first but can consume large memory for wide graphs
----
+Behavior: Always finds the shallowest goal first but can consume large memory for wide graphs 
+
 
 ----
 
