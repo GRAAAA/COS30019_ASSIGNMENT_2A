@@ -8,7 +8,6 @@
 | [Member C] | [ID] | CUS1 (IDDFS), CUS2 |
 | [Member D] | [ID] | Tests, Report, Integration |
 
-> Give tutor/lecturer **read-only** access to this repository.
 
 ---
 
