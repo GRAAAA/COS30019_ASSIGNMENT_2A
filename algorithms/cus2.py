@@ -1,215 +1,101 @@
-"""
-cus2.py — CUS2: Iterative Deepening A* (IDA*)
+# cus2.py — IDA* (CUS2)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WHY WE CHOSE IDA* FOR CUS2
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-The spec requires CUS2 to be:
-  (1) An INFORMED method — uses heuristic/cost information.
-  (2) Finds the SHORTEST PATH (with least moves / lowest cost) to the goal.
-
-IDA* (Korf, 1985) is the ideal choice because:
-
-  vs A*:
-    - A* stores the entire frontier in memory: O(b^d) space.
-    - IDA* achieves the same optimal result using only O(b*d) space —
-      a single DFS path — by trading repeated work for memory efficiency.
-    - For large search spaces, IDA* is far more practical.
-
-  vs GBFS:
-    - GBFS is fast but NOT optimal — it ignores accumulated path cost.
-    - IDA* is optimal because it prunes on f(n) = g(n) + h(n), ensuring
-      the first solution found is always the lowest-cost one.
-
-  The cost of IDA* is re-expanding nodes at each iteration.
-  In practice the overhead is small: because node counts grow exponentially
-  with depth, the deepest level dominates and re-expansion adds only
-  a constant factor (≈ b/(b-1)) over the total work of A*.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALGORITHM PROPERTIES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Complete : Yes — will find a solution if one exists on a finite graph.
-  Optimal  : Yes — guaranteed to find the minimum-cost path, provided the
-             heuristic is ADMISSIBLE (Euclidean distance never overestimates).
-  Time     : O(b^d) — same asymptotic complexity as A*.
-  Space    : O(b * d) — same as DFS, far better than A*'s O(b^d).
-  Informed : Yes — uses f(n) = g(n) + h(n), Euclidean distance heuristic.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HOW IT WORKS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Outer loop: start with bound = h(origin) — the tightest admissible bound.
-  Inner call: depth-first search, but PRUNE any node where f(n) > bound.
-
-  If goal found within bound → return it (optimal because h is admissible).
-  If not → set bound = minimum f(n) that was pruned, then retry.
-
-  Each iteration uses a tighter bound, converging on the optimal solution.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TIEBREAKING (spec NOTE 2)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Rule 1 — Ascending node ID: neighbours are sorted by node ID before
-            each expansion. Smaller IDs are explored first.
-  Rule 2 — Chronological order: the DFS explores neighbours left-to-right
-            after sorting, which is naturally chronological.
-"""
-
-import math
+def heuristic(node, goal, coords):
+    # Compute Euclidean distance between current node and goal
+    x1, y1 = coords[node]
+    x2, y2 = coords[goal]
+    dx = x1 - x2
+    dy = y1 - y2
+    return (dx * dx + dy * dy) ** 0.5
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+def _h_min(node, destinations, coords):
+    # Return the minimum heuristic value to any destination
+    return min(heuristic(node, d, coords) for d in destinations)
 
-def _euclidean(coord1, coord2):
-    """Straight-line distance between two (x, y) coordinate tuples."""
-    return math.sqrt((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2)
-
-
-def _heuristic(node_id, destinations, coordinates):
-    """
-    h(n) = minimum Euclidean distance from node_id to any destination.
-
-    Admissibility: Euclidean distance is always <= true travel cost along edges
-    on a 2D coordinate graph, so this heuristic never overestimates.
-    """
-    node_coord = coordinates[node_id]
-    return min(_euclidean(node_coord, coordinates[d]) for d in destinations)
-
-
-# ── Recursive DFS with f-bound pruning ───────────────────────────────────────
-
-def _search(graph, coordinates, current, dest_set, destinations,
-            g, bound, path, on_path, nodes_created_ref):
-    """
-    Depth-first search pruned by f(n) = g(n) + h(n) <= bound.
-
-    Args:
-        graph             (dict) : Adjacency list.
-        coordinates       (dict) : Node 2D positions.
-        current            (int) : Node being explored now.
-        dest_set           (set) : Set of goal node IDs.
-        destinations      (list) : List of goal node IDs (for heuristic).
-        g                (float) : Cumulative cost to reach current node.
-        bound            (float) : Current f-value pruning threshold.
-        path              (list) : Node IDs on the current DFS path.
-        on_path            (set) : Same nodes as path, as a set for O(1) lookup.
-                                   Used for cycle detection (avoids revisiting
-                                   ancestors on the current branch).
-        nodes_created_ref (list) : [int] — mutable counter for nodes generated.
-
-    Returns:
-        (threshold, goal_node, found_path)
-        threshold  — minimum f value pruned; -inf if goal was found.
-        goal_node  — int if goal found, else None.
-        found_path — list if goal found, else [].
-    """
-
-    f = g + _heuristic(current, destinations, coordinates)
-
-    # Prune: f exceeds current bound → return f as candidate for next bound
-    if f > bound:
-        return f, None, []
-
-    # ── Goal test ─────────────────────────────────────────────────────────────
-    if current in dest_set:
-        return -math.inf, current, list(path)
-
-    minimum = math.inf
-
-    # ── Expand: generate successors ───────────────────────────────────────────
-    # Sort by node ID ascending to satisfy spec tiebreak rule 1.
-    neighbours = sorted(graph.get(current, []), key=lambda edge: edge[0])
-
-    for neighbour_id, edge_cost in neighbours:
-
-        # Cycle guard: skip nodes already on the current path
-        if neighbour_id in on_path:
-            continue
-
-        nodes_created_ref[0] += 1
-
-        on_path.add(neighbour_id)
-        path.append(neighbour_id)
-
-        t, found_goal, found_path = _search(
-            graph, coordinates, neighbour_id, dest_set, destinations,
-            g + edge_cost, bound, path, on_path, nodes_created_ref
-        )
-
-        if found_goal is not None:
-            return -math.inf, found_goal, found_path
-
-        if t < minimum:
-            minimum = t
-
-        path.pop()
-        on_path.remove(neighbour_id)
-
-    return minimum, None, []
-
-
-# ── Main public function ──────────────────────────────────────────────────────
 
 def cus2(graph, coordinates, origin, destinations):
     """
-    CUS2: Iterative Deepening A* (IDA*).
-
-    Informed search — uses f(n) = g(n) + h(n) with Euclidean distance heuristic.
-    Finds the optimal (lowest cost) path from `origin` to any node in `destinations`.
-
-    Args:
-        graph        (dict): Adjacency list.
-                             { node_id (int): [(neighbour_id (int), cost (int/float)), ...] }
-                             Edges are DIRECTED.
-        coordinates  (dict): Node 2D positions.
-                             { node_id (int): (x (int), y (int)) }
-        origin        (int): Starting node ID.
-        destinations  (list): List of goal node IDs. Reaching ANY ONE is success.
+    IDA* search (CUS2)
 
     Returns:
-        tuple: (goal_node, nodes_created, path)
-            goal_node     (int)  : The destination node reached.
-            nodes_created  (int)  : Total nodes generated across ALL IDA* iterations.
-                                    Includes the origin (counted as 1 at start).
-            path          (list) : Node IDs from origin to goal, inclusive.
-
-        If no path exists:
-            (None, nodes_created, [])
+        goal node, number of nodes generated, and the path
     """
 
-    dest_set = set(destinations)
+    # Initial threshold based on heuristic from start node
+    threshold = _h_min(origin, destinations, coordinates)
 
-    # ── Early exit: origin is already a destination ───────────────────────────
-    if origin in dest_set:
-        return origin, 1, [origin]
+    total_nodes_generated = 0
 
-    # ── Initialise bound ──────────────────────────────────────────────────────
-    # Start with the tightest possible admissible bound: h(origin).
-    bound = _heuristic(origin, destinations, coordinates)
-
-    # ── Node creation counter ─────────────────────────────────────────────────
-    # Wrapped in a list for mutation across recursive calls.
-    # Initialised to 1 (origin is the first node created).
-    nodes_created_ref = [1]
-
-    path = [origin]
-    on_path = {origin}
-
-    # ── Outer loop: increase bound until solution found or exhausted ──────────
     while True:
+        path = [origin]
 
-        t, goal, found_path = _search(
-            graph, coordinates, origin, dest_set, destinations,
-            0, bound, path, on_path, nodes_created_ref
+        # Perform depth-limited search with current threshold
+        result, next_threshold, nodes_generated, final_path = _search(
+            path, 0, threshold, destinations, graph, coordinates
         )
 
-        if goal is not None:
-            return goal, nodes_created_ref[0], found_path
+        # Accumulate generated nodes across iterations
+        total_nodes_generated += nodes_generated
 
-        if t == math.inf:
-            # No solution exists at any f-bound
-            return None, nodes_created_ref[0], []
+        # Goal found
+        if result == "FOUND":
+            return final_path[-1], total_nodes_generated, final_path
 
-        # Raise the bound to the minimum pruned f value
-        bound = t
+        # No solution exists
+        if next_threshold == float("inf"):
+            return None, total_nodes_generated, []
+
+        # Increase threshold for next iteration
+        threshold = next_threshold
+
+
+def _search(path, g, threshold, destinations, graph, coords):
+    node = path[-1]
+
+    # Compute f = g + h
+    h = _h_min(node, destinations, coords)
+    f = g + h
+
+    # Prune if f exceeds current threshold
+    if f > threshold:
+        return "NOT_FOUND", f, 0, None
+
+    # Goal test
+    if node in destinations:
+        return "FOUND", f, 0, path.copy()
+
+    min_threshold = float("inf")
+    nodes_generated = 0
+
+    # Expand neighbors in ascending order (NOTE 2 requirement)
+    neighbors = sorted(graph.get(node, []), key=lambda x: x[0])
+
+    for neighbor, cost in neighbors:
+        if neighbor not in path:  # Avoid cycles
+            new_path = path + [neighbor]
+
+            result, temp, count, final_path = _search(
+                new_path,
+                g + cost,
+                threshold,
+                destinations,
+                graph,
+                coords
+            )
+
+            # Count generated nodes
+            nodes_generated += count + 1
+
+            if result == "FOUND":
+                return "FOUND", temp, nodes_generated, final_path
+
+            # Track smallest f that exceeded threshold
+            if temp < min_threshold:
+                min_threshold = temp
+
+    return "NOT_FOUND", min_threshold, nodes_generated, None
+
+
+
+
