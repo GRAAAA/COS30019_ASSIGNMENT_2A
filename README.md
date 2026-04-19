@@ -126,7 +126,7 @@ Optimal: Yes — guarantees shortest path in terms of number of edges (unit cost
 Space: O(b^d) — stores all nodes at the current level (memory intensive)
 Behavior: Always finds the shallowest goal first but can consume large memory for wide graphs 
 
-###CUS2 — Iterative Deepening A* (IDA*)
+### CUS2 — Iterative Deepening A* (IDA*)
 Type: Informed
 Heuristic: Euclidean distance to nearest destination (admissible)
 Evaluation: f(n) = g(n) + h(n) applied with an f-threshold
